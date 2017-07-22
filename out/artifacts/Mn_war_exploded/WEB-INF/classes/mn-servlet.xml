@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-4.2.xsd
+       http://www.springframework.org/schema/mvc
+       http://www.springframework.org/schema/mvc/spring-mvc.xsd
+       http://www.springframework.org/schema/task
+       http://www.springframework.org/schema/task/spring-task.xsd
+       http://www.springframework.org/schema/cache
+       http://www.springframework.org/schema/cache/spring-cache.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop.xsd"
+       default-autowire="byName">
+
+    <!--自动扫描注解-->
+    <context:component-scan base-package="com.mn" use-default-filters="false">
+        <context:include-filter type="annotation" expression="org.springframework.web.bind.annotation.RestController"/>
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Repository"/>
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Component"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.context.annotation.Configuration"/>
+        <context:exclude-filter type="annotation"
+                                expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+    </context:component-scan>
+
+    <mvc:default-servlet-handler/>
+    <mvc:annotation-driven/>
+    <aop:config proxy-target-class="true"/>
+
+    <!--<mvc:resources mapping="/js/**" location="/resources/portal/js/"/>-->
+    <!--<mvc:resources mapping="/css/**" location="/resources/portal/css/"/>-->
+    <!--<mvc:resources mapping="/img/**" location="/resources/portal/images/"/>-->
+    <!--<mvc:resources mapping="/jsp/**" location="/portal/message/"/>-->
+
+    <task:annotation-driven proxy-target-class="true"/>
+
+
+    <!-- properties文件预加载 -->
+    <bean id="propertyConfigurer"
+          class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath*:local/mongo.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <!--通用的多部分解析器-->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="defaultEncoding" value="UTF-8"/>
+    </bean>
+
+    <!-- 方法名解析器 -->
+    <bean id="methodNameResolver"
+          class="org.springframework.web.servlet.mvc.multiaction.ParameterMethodNameResolver">
+        <property name="paramName">
+            <value>action</value>
+        </property>
+    </bean>
+
+
+    <!-- URL映射-->
+    <bean id="urlMapping" class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
+        <!--<property name="interceptors">-->
+        <!--<list>-->
+        <!--&lt;!&ndash;<ref bean="authorizeInterceptor"/>&ndash;&gt;-->
+        <!--&lt;!&ndash;<ref bean="validateInterceptor"/>&ndash;&gt;-->
+        <!--&lt;!&ndash;<ref bean="certificateUnifyInterceptor"/>&ndash;&gt;-->
+        <!--</list>-->
+        <!--</property>-->
+        <!--<property name="mappings">-->
+        <!--<props>-->
+        <!--<prop key="/smbData">smbDataController</prop>-->
+        <!--<prop key="checkUserIsLogin.do">userListenerController</prop>-->
+        <!--</props>-->
+        <!--</property>-->
+    </bean>
+
+    <!-- 视图解析器 -->
+    <bean id="viewResolver"
+          class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="order" value="3"/>
+        <property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>
+        <property name="prefix" value="/"/>
+        <property name="suffix" value=".jsp"/>
+        <property name="contentType" value="application/json;charset=UTF-8"/>
+    </bean>
+
+    <import resource="mn-mongo.xml"/>
+    <!-- 外部导入段 -->
+    <import resource="mn-servlet-part.xml"/>
+
+    <!--<import resource="ecs_mng-mysql_config.xml"/>-->
+    <!--<import resource="mn-shiro.xml"/>-->
+
+    <!--<import resource="springmvc-servlet-part.xml"/>-->
+    <!--<import resource="springmvc-servlet-user.xml"/>-->
+    <!--<import resource="datasource-config.xml"/>-->
+    <!--<bean id="InitSystem" class="com.yunfeng.core.system.InitSystem"/>-->
+</beans>

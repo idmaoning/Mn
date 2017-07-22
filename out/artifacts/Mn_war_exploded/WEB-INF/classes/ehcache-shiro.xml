@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="http://ehcache.org/ehcache.xsd"
+         maxBytesLocalDisk="20G" name="ehcache_mng">
+    <diskStore path="d:\ehcache\ecs_mng"/>
+    <defaultCache copyOnRead="false" maxElementsInMemory="10000" copyOnWrite="false" overflowToOffHeap="false"/>
+    <cache name="session_cache"
+           maxElementsInMemory="10000"
+           overflowToOffHeap="false"
+           eternal="false"
+           timeToLiveSeconds="5"
+           timeToIdleSeconds="86400"/>
+</ehcache>  

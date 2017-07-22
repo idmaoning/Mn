@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:util="http://www.springframework.org/schema/util" xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-4.2.xsd
+       http://www.springframework.org/schema/mvc
+       http://www.springframework.org/schema/mvc/spring-mvc.xsd
+       http://www.springframework.org/schema/task
+       http://www.springframework.org/schema/task/spring-task.xsd
+       http://www.springframework.org/schema/cache
+       http://www.springframework.org/schema/cache/spring-cache.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop.xsd
+       http://www.springframework.org/schema/util
+       http://www.springframework.org/schema/util/spring-util.xsd"
+       default-autowire="byName">
+
+    <cache:annotation-driven/>
+
+    <bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager"
+        p:cacheManager-ref="ehcache"/>
+
+
+    <bean id="ehcache" class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
+          p:configLocation="classpath:ehcache-shiro.xml"
+          p:shared="true"
+    />
+    <!--eh缓存-->
+    <bean id="ehCacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager"
+        p:cacheManager-ref="ehcache"/>
+
+
+
+
+    <!--realm实现继承自AuthorizingRealm 主要做权限和登录做处理-->
+    <bean id="userRealm" class="com.yunfeng.shiro.realms.UserRealm">
+        <property name="cacheManager" ref="ehCacheManager"/>
+    </bean>
+
+
+    <!--session持久化 实现CachingSessionDAO-->
+    <bean id="upmsSessionDao" class="com.yunfeng.shiro.session.UpmsSessionDao">
+        <property name="cacheManager" ref="ehCacheManager"/>
+    </bean>
+
+    <!--用户认证拦截器，继承自AuthenticationFilter-->
+    <bean id="upmsAuthenticationFilter" class="com.yunfeng.shiro.filter.UpmsAuthenticationFilter">
+        <property name="upmsSessionDao" ref="upmsSessionDao"/>
+    </bean>
+
+    <!--session工厂-->
+    <bean id="upmsSessionFactory" class="com.yunfeng.shiro.session.UpmsSessionFactory"/>
+
+
+    <!--任务调度，对session的有效与否做出检查  -->
+    <bean id="quartzSessionValidationScheduler"
+          class="org.apache.shiro.session.mgt.quartz.QuartzSessionValidationScheduler">
+        <property name="sessionValidationInterval" value="1800000"/>
+        <property name="sessionManager" ref="defaultSessionManager"/>
+    </bean>
+
+    <!--会话的集中管理-->
+    <bean id="defaultSessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+        <!-- 全局session超时时间 -->
+        <property name="globalSessionTimeout" value="1800000"/>
+        <!-- sessionDAO -->
+        <property name="sessionDAO" ref="upmsSessionDao"/>
+        <property name="sessionIdCookieEnabled" value="true"/>
+        <property name="sessionIdCookie" ref="sessionIdCookie"/>
+        <property name="sessionValidationSchedulerEnabled" value="false"/>
+        <property name="sessionListeners">
+            <list>
+                <ref bean="sessionListener"/>
+            </list>
+        </property>
+        <property name="sessionFactory" ref="upmsSessionFactory"/>
+        <property name="cacheManager" ref="ehCacheManager"/>
+    </bean>
+    <!--会话监听-->
+    <bean id="sessionListener" class="com.yunfeng.shiro.listener.UpmsSessionListener"/>
+
+    <!-- 会话Cookie模板 -->
+    <bean id="sessionIdCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+        <constructor-arg value="sid"/>
+        <!-- 不会暴露给客户端 -->
+        <property name="httpOnly" value="true"/>
+        <!-- 设置Cookie的过期时间，秒为单位，默认-1表示关闭浏览器时过期Cookie -->
+        <property name="maxAge" value="-1"/>
+    </bean>
+
+    <bean id="rememberMeCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+        <constructor-arg value="rememberMe"/>
+        <!-- 不会暴露给客户端 -->
+        <property name="httpOnly" value="true"/>
+        <!-- 记住我cookie生效时间 -->
+        <property name="maxAge" value="2592000"/>
+    </bean>
+
+    <bean id="rememberMeManager" class="org.apache.shiro.web.mgt.CookieRememberMeManager">
+        <property name="cookie" ref="rememberMeCookie"/>
+        <property name="cipherKey" value="#{T(org.apache.shiro.codec.Base64).decode('4AvVhmFLUs0KTA3Kprsdag==')}"/>
+    </bean>
+
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realms">
+            <list>
+                <ref bean="userRealm"/>
+            </list>
+        </property>
+        <property name="sessionManager" ref="defaultSessionManager"/>
+        <property name="rememberMeManager" ref="rememberMeManager"/>
+        <property name="cacheManager" ref="ehCacheManager"/>
+    </bean>
+
+    <!-- 强制退出会话过滤器 -->
+    <bean id="upmsSessionForceLogout" class="com.yunfeng.shiro.filter.UpmsSessionForceLogoutFilter"/>
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <property name="loginUrl" value="/protal/login.html"/>
+        <property name="successUrl" value="/index.jsp"/>
+        <property name="unauthorizedUrl" value="upms.unauthorizedUrl"/>
+        <property name="filters">
+            <util:map>
+                <entry key="authc" value-ref="upmsAuthenticationFilter"/>
+            </util:map>
+        </property>
+
+        <property name="filterChainDefinitions">
+            <value>
+                /portal/** = authc
+                /druid/** = user
+                /swagger-ui.html = user
+                /resources/** = anon
+                /** = anon
+            </value>
+        </property>
+    </bean>
+</beans>
